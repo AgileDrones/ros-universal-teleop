@@ -52,7 +52,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES universal_teleop
-  CATKIN_DEPENDS roscpp geometry_msgs nav_msgs std_msgs message_runtime 
+  CATKIN_DEPENDS roscpp geometry_msgs nav_msgs std_msgs message_runtime keyboard
 #  DEPENDS system_lib
 )
 
@@ -74,7 +74,7 @@ add_executable(universal_teleop src/main.cpp src/teleop.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-add_dependencies(universal_teleop universal_teleop_generate_messages_cpp)
+add_dependencies(universal_teleop universal_teleop_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(universal_teleop

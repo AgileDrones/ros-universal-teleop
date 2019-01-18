@@ -1,6 +1,7 @@
 #include <geometry_msgs/Twist.h>
 #include <std_msgs/Empty.h>
 #include <iostream>
+#include <mav_msgs/RateThrust.h>
 #include "universal_teleop/Control.h"
 #include "teleop.h"
 
@@ -25,14 +26,19 @@ teleop::Teleop::Teleop(void) : n("~"), key_override_enabled(false), joy_override
 
   std::map<std::string, int> keys;
   if (n.hasParam("keys")) n.getParam("keys", keys);
-  else keys = { {"override", 32}, {"start", 113}, {"stop", 97}, {"takeoff", 121}, {"land", 104} };
+  else keys = { {"override", ' '},
+                {"start", 'z'}, {"stop", 'x'},
+                {"takeoff", 't'}, {"land", 'y'} };
   for (auto& k : keys) key_map[k.second] = k.first;
 
   std::map<std::string, int> key_axes;
   if (n.hasParam("key_axes")) n.getParam("key_axes", key_axes);
-  else key_axes = { { "pitch+", 273 }, { "pitch-", 274 }, { "yaw+", 276 }, { "yaw-", 275 } };
+  else key_axes = { { "pitch+", 'k' }, { "pitch-", 'i' },
+                    { "roll+", 'l' }, { "roll-", 'j' },
+                    { "yaw+", 'a' }, { "yaw-", 'd' },
+                    { "vertical+", 'w' }, { "vertical-", 's' }};
   for (auto& k : key_axes) key_axes_map[k.second] = k.first;
-  key_axes_state = { { "pitch", 0 }, { "yaw", 0 } };
+  key_axes_state = { { "pitch", 0 },{ "roll", 0 }, { "yaw", 0 }, { "vertical", 0 } };
 
   axis_scales = { { "pitch", 1.0f }, { "roll", 1.0f }, { "yaw", 1.0f }, { "vertical", 1.0f } };
   n.param("scales", axis_scales, axis_scales);
@@ -46,7 +52,7 @@ teleop::Teleop::Teleop(void) : n("~"), key_override_enabled(false), joy_override
   keydown_sub = n.subscribe("/keyboard/keydown", 1, &Teleop::keyboard_down_event, this);
 
   /* publish events and control commands */  
-  pub_vel = n.advertise<geometry_msgs::Twist>("/robot/cmd_vel", 5);
+  pub_vel = n.advertise<mav_msgs::RateThrust>("input/RateThrust", 1);
   
   pub_event = n.advertise<teleop::Event>("events", 5);
   pub_control = n.advertise<teleop::Control>("controls", 1);
@@ -159,6 +165,7 @@ void teleop::Teleop::keyboard_down_event(const keyboard::Key::ConstPtr& key)
 
 void teleop::Teleop::control(void)
 {
+    mav_msgs::RateThrust msg;
   if (joy_override_enabled) {
     if (last_joy_msg.axes.empty()) return;
 
@@ -173,23 +180,20 @@ void teleop::Teleop::control(void)
     if (std::abs(roll) < joy_deadzones["roll"]) roll = 0;
     if (std::abs(vertical) < joy_deadzones["vertical"]) vertical = 0;
 
+    msg.angular_rates.x = pitch * axis_scales["pitch"];
+    msg.angular_rates.y = roll * axis_scales["roll"];
+    msg.angular_rates.z = yaw * axis_scales["yaw"];
+    msg.thrust.z = vertical * axis_scales["vertical"];
 
-    geometry_msgs::Twist vel;
-    vel.linear.x = pitch * axis_scales["pitch"];
-    vel.linear.y = roll * axis_scales["roll"];
-    vel.linear.z = vertical * axis_scales["vertical"];
-    vel.angular.x = vel.angular.y = 1; // non-zero to avoid hovering when zero-ing controls
-    vel.angular.z = yaw * axis_scales["yaw"];
-    pub_vel.publish(vel);
+    pub_vel.publish(msg);
   }
   else if (key_override_enabled) {
-    geometry_msgs::Twist vel;
-    vel.linear.x = key_axes_state["pitch"] * axis_scales["pitch"];
-    vel.linear.y = 0/*roll * axis_scales["roll"]*/;
-    vel.linear.z = 0/*last_joy_msg.axes[joy_axes["vertical"]] * axis_scales["vertical"]*/;
-    vel.angular.x = vel.angular.y = 1; // non-zero to avoid hovering when zero-ing controls
-    vel.angular.z = key_axes_state["yaw"] * axis_scales["yaw"];
-    pub_vel.publish(vel);
+    msg.angular_rates.x = key_axes_state["pitch"] * axis_scales["pitch"];
+    msg.angular_rates.y = key_axes_state["roll"] * axis_scales["roll"];
+    msg.angular_rates.z = key_axes_state["yaw"] * axis_scales["yaw"];
+    msg.thrust.z = key_axes_state["vertical"] * axis_scales["vertical"];
+
+    pub_vel.publish(msg);
   }
 }
 
