@@ -52,7 +52,7 @@ teleop::Teleop::Teleop(void) : n("~"), key_override_enabled(false), joy_override
   keydown_sub = n.subscribe("/keyboard/keydown", 1, &Teleop::keyboard_down_event, this);
 
   /* publish events and control commands */  
-  pub_vel = n.advertise<mav_msgs::RateThrust>("input/RateThrust", 1);
+  pub_vel = n.advertise<mav_msgs::RateThrust>("input/rateThrust", 1);
   
   pub_event = n.advertise<teleop::Event>("events", 5);
   pub_control = n.advertise<teleop::Control>("controls", 1);

@@ -6,7 +6,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp std_msgs geometry_msgs nav_msgs keyboard joy message_generation)
+find_package(catkin REQUIRED COMPONENTS roscpp std_msgs geometry_msgs nav_msgs mav_msgs keyboard joy message_generation)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -52,7 +52,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES universal_teleop
-  CATKIN_DEPENDS roscpp geometry_msgs nav_msgs std_msgs message_runtime keyboard
+  CATKIN_DEPENDS roscpp geometry_msgs nav_msgs mav_msgs std_msgs message_runtime keyboard
 #  DEPENDS system_lib
 )
 
