@@ -8,8 +8,9 @@
 using namespace std;
 namespace teleop = universal_teleop;
 
-teleop::Teleop::Teleop(void) : n("~"), key_override_enabled(false), joy_override_enabled(false)
+teleop::Teleop::Teleop(void) : n(), key_override_enabled(false), joy_override_enabled(false)
 {
+
   /* load mappings */
   if (n.hasParam("joy_axes")) n.getParam("joy_axes", joy_axes);
   else joy_axes = { {"pitch", 1}, {"roll", 0}, {"yaw", 3}, {"vertical",2} };
@@ -47,20 +48,20 @@ teleop::Teleop::Teleop(void) : n("~"), key_override_enabled(false), joy_override
   n.param("send_velocity", send_velocity, true);
 
   /* subscribe to input sources */
-  joy_sub = n.subscribe("/joy", 1, &Teleop::joystick_event, this);
-  keyup_sub = n.subscribe("/keyboard/keyup", 1, &Teleop::keyboard_up_event, this);
-  keydown_sub = n.subscribe("/keyboard/keydown", 1, &Teleop::keyboard_down_event, this);
+  joy_sub = n.subscribe("joy", 1, &Teleop::joystick_event, this);
+  keyup_sub = n.subscribe("keyboard/keyup", 1, &Teleop::keyboard_up_event, this);
+  keydown_sub = n.subscribe("keyboard/keydown", 1, &Teleop::keyboard_down_event, this);
 
   /* publish events and control commands */  
-  pub_vel = n.advertise<mav_msgs::RateThrust>("input/rateThrust", 1);
+  pub_vel = n.advertise<mav_msgs::RateThrust>("output/rateThrust", 1);
   
-  pub_event = n.advertise<teleop::Event>("events", 5);
-  pub_control = n.advertise<teleop::Control>("controls", 1);
+  pub_event = n.advertise<teleop::Event>("universal_teleop/events", 5);
+  pub_control = n.advertise<teleop::Control>("universal_teleop/controls", 1);
 
   /* special events for UAV commands */
-  pub_takeoff = n.advertise<std_msgs::Empty>("/robot/takeoff", 5);
-  pub_land = n.advertise<std_msgs::Empty>("/robot/land", 5);
-  pub_emergency = n.advertise<std_msgs::Empty>("/robot/reset", 5);
+  pub_takeoff = n.advertise<std_msgs::Empty>("output/takeoff", 5);
+  pub_land = n.advertise<std_msgs::Empty>("output/land", 5);
+  pub_emergency = n.advertise<std_msgs::Empty>("output/reset", 5);
 }
 
 void teleop::Teleop::process_event(const teleop::Event& e)
