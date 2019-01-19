@@ -22,7 +22,7 @@ teleop::Teleop::Teleop(void) : n("~"), key_override_enabled(false), joy_override
 
   joy_deadzones = { { "pitch", 0.000001f }, { "roll", 0.000001f }, { "yaw", 0.000001f }, { "vertical", 0.000001f } };
   n.param("joy_deadzones", joy_deadzones, joy_deadzones);
-  for (auto& k: joy_deadzones) cout << k.first << " " << k.second << endl;
+//  for (auto& k: joy_deadzones) cout << k.first << " " << k.second << endl;
 
   std::map<std::string, int> keys;
   if (n.hasParam("keys")) n.getParam("keys", keys);
@@ -66,23 +66,23 @@ teleop::Teleop::Teleop(void) : n("~"), key_override_enabled(false), joy_override
 void teleop::Teleop::process_event(const teleop::Event& e)
 {
   ROS_DEBUG_STREAM("event: " << e.event << " state: " << e.state);
-  if (e.event == "override") {
-    if (e.state == 0) {
-      // when releasing override, stop robot 
-      geometry_msgs::Twist vel;
-      vel.linear.x = vel.linear.y = vel.linear.z = 0;
-      vel.angular.x = vel.angular.y = 1; // non-zero to avoid hovering when zero-ing controls
-      vel.angular.z = 0;
-      pub_vel.publish(vel);
-    }
-  }
-  else {
+//  if (e.event == "override") {
+//    if (e.state == 0) {
+//      // when releasing override, stop robot
+//      geometry_msgs::Twist vel;
+//      vel.linear.x = vel.linear.y = vel.linear.z = 0;
+//      vel.angular.x = vel.angular.y = 1; // non-zero to avoid hovering when zero-ing controls
+//      vel.angular.z = 0;
+//      pub_vel.publish(vel);
+//    }
+//  }
+//  else {
     if ((joy_override_enabled || key_override_enabled) && e.state) {
       if (e.event == "takeoff") pub_takeoff.publish(std_msgs::Empty());
       else if (e.event == "land") pub_land.publish(std_msgs::Empty());
       else if (e.event == "emergency") pub_emergency.publish(std_msgs::Empty());
     }
-  }
+//  }
   pub_event.publish(e);
 }
 
@@ -131,7 +131,10 @@ void teleop::Teleop::keyboard_up_event(const keyboard::Key::ConstPtr& key)
   ROS_DEBUG_STREAM("keyup: " << key->code);
   if (key_axes_map.find(key->code) != key_axes_map.end()) {
     std::string& cmd = key_axes_map[key->code];
-    key_axes_state[cmd.substr(0, cmd.size() - 1)] = 0;
+    // Do not zero out thrust when releasing keys.
+    if (cmd.substr(0, cmd.size() - 1) != "vertical") {
+        key_axes_state[cmd.substr(0, cmd.size() - 1)] = 0;
+    }
   }
   else {
     teleop::Event e;
@@ -139,7 +142,13 @@ void teleop::Teleop::keyboard_up_event(const keyboard::Key::ConstPtr& key)
     else e.event = key_map[key->code];
     e.state = 0;
 
-    if (e.event == "override") key_override_enabled = false;
+    if (e.event == "override"){
+        key_override_enabled = false;
+        // Zero out keyboard commands
+        for (auto &axes : key_axes_state){
+            axes.second = 0;
+        }
+    }
     process_event(e);
   }
 }
@@ -150,7 +159,14 @@ void teleop::Teleop::keyboard_down_event(const keyboard::Key::ConstPtr& key)
 
   if (key_axes_map.find(key->code) != key_axes_map.end()) {
     std::string& cmd = key_axes_map[key->code];
-    key_axes_state[cmd.substr(0, cmd.size() - 1)] = (cmd[cmd.size() - 1] == '+' ? 1 : -1);
+    if (cmd.substr(0, cmd.size() - 1) != "vertical"){
+        key_axes_state[cmd.substr(0, cmd.size() - 1)] = (cmd[cmd.size() - 1] == '+' ? 1 : -1);
+    } else {
+        // Thrust should be handled differently. Thrust is guaranteed to be min of zero. Should be additive for each
+        // press of keyboard.
+        key_axes_state["vertical"] += (cmd[cmd.size() - 1] == '+' ? 1 : -1);
+        key_axes_state["vertical"] = max(key_axes_state["vertical"], 0);
+    }
   }
   else {
     teleop::Event e;
@@ -166,6 +182,8 @@ void teleop::Teleop::keyboard_down_event(const keyboard::Key::ConstPtr& key)
 void teleop::Teleop::control(void)
 {
     mav_msgs::RateThrust msg;
+    msg.header.frame_id = "uav_imu";
+    msg.header.stamp = ros::Time::now();
   if (joy_override_enabled) {
     if (last_joy_msg.axes.empty()) return;
 
@@ -185,16 +203,16 @@ void teleop::Teleop::control(void)
     msg.angular_rates.z = yaw * axis_scales["yaw"];
     msg.thrust.z = vertical * axis_scales["vertical"];
 
-    pub_vel.publish(msg);
   }
   else if (key_override_enabled) {
     msg.angular_rates.x = key_axes_state["pitch"] * axis_scales["pitch"];
     msg.angular_rates.y = key_axes_state["roll"] * axis_scales["roll"];
     msg.angular_rates.z = key_axes_state["yaw"] * axis_scales["yaw"];
     msg.thrust.z = key_axes_state["vertical"] * axis_scales["vertical"];
-
-    pub_vel.publish(msg);
   }
+    // Publish message.
+    // Might be an empty message if there is no override enabled.
+    pub_vel.publish(msg);
 }
 
 
