@@ -9,7 +9,9 @@ using namespace std;
 namespace teleop = universal_teleop;
 
 // OVERRIDES:
-const double idleThrust = 3.0f*9.81f;
+
+// Assumes 1KG drone.
+const double idleThrust = 1.0f*9.81f;
 
 teleop::Teleop::Teleop(void) : n(), n_private("universal_teleop"), key_override_enabled(false), joy_override_enabled(false)
 {
@@ -46,7 +48,7 @@ teleop::Teleop::Teleop(void) : n(), n_private("universal_teleop"), key_override_
   for (auto& k : key_axes) key_axes_map[k.second] = k.first;
   key_axes_state = { { "pitch", 0 },{ "roll", 0 }, { "yaw", 0 }, { "vertical", 0 } };
 
-  axis_scales = { { "pitch", 0.1f }, { "roll", 0.1f }, { "yaw", 0.1f }, { "vertical", idleThrust } };
+  axis_scales = { { "pitch", 1.0f }, { "roll", 1.0f }, { "yaw", 1.0f }, { "vertical", 2.0f*idleThrust } };
   n.param("scales", axis_scales, axis_scales);
   //for (auto& k: axis_scales) cout << k.first << " " << k.second << endl;
 
