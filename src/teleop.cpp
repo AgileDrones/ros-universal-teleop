@@ -172,7 +172,7 @@ void teleop::Teleop::keyboard_down_event(const keyboard::Key::ConstPtr& key)
     } else {
         // Thrust should be handled differently. Should be additive for each
         // press of keyboard.
-        key_axes_state["vertical"] += (cmd[cmd.size() - 1] == '+' ? 0.1f : -0.1f);
+        key_axes_state["vertical"] += (cmd[cmd.size() - 1] == '+' ? 0.05f : -0.05f);
 //        key_axes_state["vertical"] = max(key_axes_state["vertical"], 0);
     }
   }
