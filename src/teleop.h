@@ -20,6 +20,7 @@ namespace universal_teleop {
       void process_event(const universal_teleop::Event& e);
 
       ros::NodeHandle n;
+      ros::NodeHandle n_private;
       
       ros::Subscriber joy_sub, keyup_sub, keydown_sub;
       ros::Publisher pub_vel, pub_event, pub_control;
@@ -30,12 +31,12 @@ namespace universal_teleop {
       std::map<int, std::string> joy_axis_map;
       std::map<uint16_t, std::string> key_map;
       std::map<uint16_t, std::string> key_axes_map;
-      std::map<std::string, int> key_axes_state;
+      std::map<std::string, double> key_axes_state;
       
-      std::map<std::string, float> axis_scales;
+      std::map<std::string, double> axis_scales;
 
       std::map<std::string, int> joy_axes;
-      std::map<std::string, float> joy_deadzones;
+      std::map<std::string, double> joy_deadzones;
 
       bool key_override_enabled, joy_override_enabled, send_velocity;
   };
