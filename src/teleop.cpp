@@ -25,7 +25,7 @@ teleop::Teleop::Teleop(void) : n(), n_private("universal_teleop"), key_override_
 
   map<string, int> joy_buttons;
   if (n_private.hasParam("joy_buttons")) n_private.getParam("joy_buttons", joy_buttons);
-  else joy_buttons = { {"override", 4}, {"start", 2}, {"stop", 1}, {"takeoff", 10}, {"land", 11} };
+  else joy_buttons = { {"override", 6}, {"start", 2}, {"stop", 1}, {"takeoff", 10}, {"land", 11} };
   for (auto& j : joy_buttons) joy_button_map[j.second] = j.first;
 
   joy_deadzones = { { "pitch", 0.000001f }, { "roll", 0.000001f }, { "yaw", 0.000001f }, { "vertical", 0.000001f } };
@@ -192,7 +192,7 @@ void teleop::Teleop::keyboard_down_event(const keyboard::Key::ConstPtr& key)
 void teleop::Teleop::control(void)
 {
     mav_msgs::RateThrust msg;
-    msg.header.frame_id = "uav_imu";
+    msg.header.frame_id = "uav/imu";
     msg.header.stamp = ros::Time::now();
 
   // Default thrust command to idle thrust"
@@ -207,15 +207,15 @@ void teleop::Teleop::control(void)
     float vertical = last_joy_msg.axes[joy_axes["vertical"]];
 
     /* check deadzones */
-    if (std::abs(pitch) < joy_deadzones["pitch"]) pitch = 0;
-    if (std::abs(yaw) < joy_deadzones["yaw"]) yaw = 0;
-    if (std::abs(roll) < joy_deadzones["roll"]) roll = 0;
-    if (std::abs(vertical) < joy_deadzones["vertical"]) vertical = 0;
+//    if (std::abs(pitch) < joy_deadzones["pitch"]) pitch = 0;
+//    if (std::abs(yaw) < joy_deadzones["yaw"]) yaw = 0;
+//    if (std::abs(roll) < joy_deadzones["roll"]) roll = 0;
+//    if (std::abs(vertical) < joy_deadzones["vertical"]) vertical = 0;
 
-    msg.angular_rates.y = pitch * axis_scales["pitch"];
-    msg.angular_rates.x = roll * axis_scales["roll"];
-    msg.angular_rates.z = yaw * axis_scales["yaw"];
-    msg.thrust.z = vertical * axis_scales["vertical"] + idleThrust;
+    msg.angular_rates.y = std::pow(pitch,3.0f) * axis_scales["pitch"];
+    msg.angular_rates.x = std::pow(roll, 3.0f) * axis_scales["roll"];
+    msg.angular_rates.z = std::pow(yaw,3.0f) * axis_scales["yaw"];
+    msg.thrust.z = std::pow(vertical, 3.0f) * axis_scales["vertical"] + idleThrust;
 
   }
   else if (key_override_enabled) {
